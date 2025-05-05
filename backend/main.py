@@ -1,33 +1,26 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from dotenv import load_dotenv
-import whisper
-import os
-import shutil
 from together import Together
 
 load_dotenv()
 
 app = FastAPI()
-
-whisper_model = whisper.load_model("medium")
 client = Together()
 
-@app.post("/analyze-call/")
-async def analyze_call(audio: UploadFile = File(...)):
-    try:
-        temp_path = f"temp/temp_{audio.filename}"
-        with open(temp_path, "wb") as buffer:
-            shutil.copyfileobj(audio.file, buffer)
-        print(temp_path)
-        transcript = whisper_model.transcribe(temp_path)
-        print(transcript['text'])
+# Define the input schema
+class TranscriptInput(BaseModel):
+    transcript: str
 
+@app.post("/analyze-transcript/")
+async def analyze_transcript(data: TranscriptInput):
+    try:
         prompt = f"""
         You are a Sales QA Analyst. A transcript of a sales call is provided below.
 
         Transcript:
-        \"\"\"{transcript['text']}\"\"\"
+        \"\"\"{data.transcript}\"\"\"
 
         1. Fix any typo in the transcript.
         2. Summarize the call in 5 bullet points.
@@ -48,10 +41,7 @@ async def analyze_call(audio: UploadFile = File(...)):
             messages=[{"role": "user", "content": prompt}]
         )
 
-        os.remove(temp_path)
-
         return JSONResponse(content={"analysis": response.choices[0].message.content})
 
     except Exception as e:
-        print(e)
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        raise HTTPException(status_code=500, detail=str(e))
