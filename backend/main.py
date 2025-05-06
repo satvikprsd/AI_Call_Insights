@@ -26,7 +26,7 @@ async def analyze_call(audio: UploadFile = File(...)):
         if transcript.status == "error":
             raise RuntimeError(f"Transcription failed: {transcript.error}")
 
-        print(transcript.text)
+        # print(transcript.text)
 
         prompt = f"""
         You are a Sales QA Analyst. A transcript of a sales call is provided below.
