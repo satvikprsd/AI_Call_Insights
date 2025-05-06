@@ -1,37 +1,48 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from dotenv import load_dotenv
+import assemblyai as aai
+import os
+import shutil
 from together import Together
 
 load_dotenv()
 
+aai.settings.api_key = os.getenv("ASSEMBLYAI_API")
 app = FastAPI()
+
+config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best)
 client = Together()
 
-# Define the input schema
-class TranscriptInput(BaseModel):
-    transcript: str
-
-@app.post("/analyze-transcript/")
-async def analyze_transcript(data: TranscriptInput):
+@app.post("/analyze-call/")
+async def analyze_call(audio: UploadFile = File(...)):
     try:
+        os.makedirs("temp", exist_ok=True)
+        temp_path = f"temp/temp_{audio.filename}"
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(audio.file, buffer)
+        transcript = aai.Transcriber(config=config).transcribe(temp_path)
+
+        if transcript.status == "error":
+            raise RuntimeError(f"Transcription failed: {transcript.error}")
+
+        print(transcript.text)
+
         prompt = f"""
         You are a Sales QA Analyst. A transcript of a sales call is provided below.
 
         Transcript:
-        \"\"\"{data.transcript}\"\"\"
+        \"\"\"{transcript.text}\"\"\"
 
-        1. Fix any typo in the transcript.
-        2. Summarize the call in 5 bullet points.
-        3. List the key discussion topics.
-        4. Identify objections raised by the customer.
-        5. Rate the sales agent on:
+        1. Summarize the call in 5 bullet points.
+        2. List the key discussion topics.
+        3. Identify objections raised by the customer.
+        4. Rate the sales agent on:
         - Tone and empathy
         - Flow and clarity
         - Objection handling
         (Use a 5-star rating scale)
-        6. List next actionables with brief reasoning.
+        5. List next actionables with brief reasoning.
 
         Respond in a well-structured format.
         """
@@ -41,7 +52,10 @@ async def analyze_transcript(data: TranscriptInput):
             messages=[{"role": "user", "content": prompt}]
         )
 
-        return JSONResponse(content={"analysis": response.choices[0].message.content})
+        os.remove(temp_path)
+
+        return JSONResponse(content={"transcript": transcript.text ,"analysis": response.choices[0].message.content})
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(e)
+        return JSONResponse(status_code=500, content={"error": str(e)})
