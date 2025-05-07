@@ -23,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best)
+config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best, language_detection=True)
 client = Together()
 
 @app.post("/analyze-call/")
