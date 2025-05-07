@@ -13,7 +13,7 @@ app = FastAPI()
 
 
 origins = [
-    "https://ai-call-insights.vercel.app/",
+    "https://ai-call-insights.vercel.app",
 ]
 app.add_middleware(
     CORSMiddleware,
