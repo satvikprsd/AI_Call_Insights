@@ -25,7 +25,7 @@ const FileUpload = () => {
     setError('');
     setTranscript('');
     setAnalysis('');
-    setTimer(30);
+    setTimer(60);
 
     const id = setInterval(() => {
       setTimer((prevTime) => {
