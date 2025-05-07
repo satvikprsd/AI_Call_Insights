@@ -1,6 +1,5 @@
 import React from 'react'
 import FileUpload from './FileUpload'
-import Transcript from './Transcript'
 
 const Home = () => {
   return (
