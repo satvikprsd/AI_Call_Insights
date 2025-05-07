@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware 
 from dotenv import load_dotenv
 import assemblyai as aai
 import os
@@ -7,9 +8,20 @@ import shutil
 from together import Together
 
 load_dotenv()
-
 aai.settings.api_key = os.getenv("ASSEMBLYAI_API")
 app = FastAPI()
+
+
+origins = [
+    "https://ai-call-insights.vercel.app/",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best)
 client = Together()
@@ -25,8 +37,6 @@ async def analyze_call(audio: UploadFile = File(...)):
 
         if transcript.status == "error":
             raise RuntimeError(f"Transcription failed: {transcript.error}")
-
-        # print(transcript.text)
 
         prompt = f"""
         You are a Sales QA Analyst. A transcript of a sales call is provided below.
@@ -54,7 +64,7 @@ async def analyze_call(audio: UploadFile = File(...)):
 
         os.remove(temp_path)
 
-        return JSONResponse(content={"transcript": transcript.text ,"analysis": response.choices[0].message.content})
+        return JSONResponse(content={"transcript": transcript.text, "analysis": response.choices[0].message.content})
 
     except Exception as e:
         print(e)
