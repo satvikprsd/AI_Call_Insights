@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const FileUpload = () => {
   const [audioFile, setAudioFile] = useState(null);
@@ -60,19 +59,20 @@ const FileUpload = () => {
     }
   };
 
-  const handleDownloadPDF = async () => {
-    if (!reportRef.current) return;
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
 
-    const canvas = await html2canvas(reportRef.current);
-    const imgData = canvas.toDataURL('image/png');
+    doc.setFontSize(12);
+    doc.text('Transcript:', 10, 10);
+    const transcriptLines = doc.splitTextToSize(transcript, 180);
+    doc.text(transcriptLines, 10, 20);
 
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    doc.addPage();
+    doc.text('Analysis:', 10, 10);
+    const analysisLines = doc.splitTextToSize(analysis, 180); 
+    doc.text(analysisLines, 10, 20);
 
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save('call_report.pdf');
+    doc.save('call_report.pdf');
   };
 
   const renderAnalysis = (text) => {
@@ -158,46 +158,47 @@ const FileUpload = () => {
       </div>
 
       {isLoading && (
-        <div className="mt-6 w-full flex flex-col items-center">
-          <div className="relative w-20 h-20">
-            <svg
-              className="w-full h-full"
-              viewBox="0 0 36 36"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                className="text-gray-200"
-                cx="18"
-                cy="18"
-                r="16"
-                strokeWidth="4"
-                fill="none"
-              />
-              <circle
-                className="text-blue-600"
-                cx="18"
-                cy="18"
-                r="16"
-                strokeWidth="4"
-                fill="none"
-                strokeDasharray="100"
-                strokeDashoffset={(timer / 30) * 100}
-                strokeLinecap="round"
-                transform="rotate(-90 18 18)"
-              />
-            </svg>
-            <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-              <span className="text-xl text-gray-700">{timer}s</span>
+        <div>
+          <div className="mt-6 w-full flex flex-col items-center">
+            <div className="relative w-20 h-20">
+              <svg
+                className="w-full h-full"
+                viewBox="0 0 36 36"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  className="text-gray-200"
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <circle
+                  className="text-blue-600"
+                  cx="18"
+                  cy="18"
+                  r="16"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeDasharray="100"
+                  strokeDashoffset={(timer / 30) * 100}
+                  strokeLinecap="round"
+                  transform="rotate(-90 18 18)"
+                />
+              </svg>
+              <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
+                <span className="text-xl text-gray-700">{timer}s</span>
+              </div>
             </div>
           </div>
-
-          <div className="mt-4 w-full max-w-xs bg-gray-200 h-2 rounded-full">
-            <div
-              className="h-2 bg-blue-600 rounded-full"
-              style={{ width: `${(timer / 30) * 100}%` }}
-            />
-          </div>
+        <div className="ml-40 mt-4 w-full max-w-xs bg-gray-200 h-2 rounded-full">
+          <div
+            className="h-2 bg-blue-600 rounded-full"
+            style={{ width: `${(timer / 30) * 100}%` }}
+          />
         </div>
+      </div>
       )}
 
       {(transcript || analysis) && (
